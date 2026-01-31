@@ -1,0 +1,132 @@
+:host {
+  display: block;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+}
+
+#map {
+  height: 100%;
+  width: 100%;
+}
+
+.create-incident-btn {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  z-index: 1000;
+  padding: 14px 22px;
+  border: none;
+  border-radius: 8px;
+  background: #1f6feb;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.create-incident-btn:hover {
+  background: #1a5fd0;
+}
+
+.create-incident-btn:active {
+  transform: translateY(1px);
+}
+
+.incident-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.incident-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.incident-modal__content {
+  position: relative;
+  z-index: 1;
+  width: 360px;
+  max-width: calc(100% - 32px);
+  background: #1f6feb;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+  color: #ffffff;
+}
+
+.incident-modal__content * {
+  box-sizing: border-box;
+}
+
+.incident-modal__content h2 {
+  margin: 0 0 12px;
+}
+
+.incident-modal__content form {
+  display: grid;
+  gap: 12px;
+}
+
+.incident-modal__content label {
+  display: grid;
+  gap: 6px;
+  font-weight: 400;
+  color: #ffffff;
+}
+
+.incident-modal__content input,
+.incident-modal__content textarea,
+.incident-modal__content select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  font: inherit;
+  background: #ffffff;
+  color: #1f2328;
+}
+
+.incident-modal__content select,
+.incident-modal__content select option {
+  background: #ffffff;
+  color: #1f2328;
+}
+
+.incident-modal__content input::placeholder,
+.incident-modal__content textarea::placeholder {
+  color: #6e7781;
+}
+
+.incident-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.incident-modal__actions button {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  background: #0b5ed7;
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.incident-modal__actions button.secondary {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+.custom-car-icon {
+  background: transparent !important;
+  border: none !important;
+}

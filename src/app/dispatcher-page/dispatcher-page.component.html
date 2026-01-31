@@ -1,0 +1,35 @@
+
+<div id="map"></div>
+<button class="create-incident-btn" type="button" (click)="openIncidentForm()">Create Incident</button>
+
+<div class="incident-modal" *ngIf="showIncidentForm">
+	<div class="incident-modal__backdrop" (click)="closeIncidentForm()"></div>
+	<div class="incident-modal__content">
+		<h2>Create Incident</h2>
+		<form (ngSubmit)="submitIncident()">
+			<label>
+				Description
+				<textarea [(ngModel)]="incident.description" name="description" rows="3" required></textarea>
+			</label>
+
+			<label>
+				Address
+				<input [(ngModel)]="incident.address" name="address" type="text" required />
+			</label>
+
+			<label>
+				Incident Type
+				<select [(ngModel)]="incident.incident_type" name="incidentType" required>
+					<option *ngFor="let type of incidentTypes" [ngValue]="type">
+						{{ type.incident_type }}
+					</option>
+				</select>
+			</label>
+
+			<div class="incident-modal__actions">
+				<button type="button" class="secondary" (click)="closeIncidentForm()">Cancel</button>
+				<button type="submit">Submit</button>
+			</div>
+		</form>
+	</div>
+</div>
