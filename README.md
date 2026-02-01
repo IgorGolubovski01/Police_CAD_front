@@ -55,5 +55,4 @@ This is an **Angular-based frontend application** for the Incident Management Sy
 - **State Management**: Component-based state with services.
 - **Language**: TypeScript 5.7+.
 - **Build Tool**: Angular CLI 19.
-- **Testing**: Jasmine and Karma (configured).
 - **Node Package Manager**: npm/bun.
