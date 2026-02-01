@@ -1,5 +1,4 @@
 export interface IncidentType {
-    id: number;
     incident_type: string;
 }
 

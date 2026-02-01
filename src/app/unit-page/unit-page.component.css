@@ -1,0 +1,22 @@
+:host {
+  display: block;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+}
+
+.container {
+  display: flex;
+  height: 100%;
+  width: 100%;
+}
+
+#map {
+  height: 100%;
+  width: 50%;
+}
+
+.right-panel {
+  width: 50%;
+  height: 100%;
+}

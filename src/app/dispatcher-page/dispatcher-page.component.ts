@@ -16,15 +16,17 @@ import { DispatcherService } from '../services/dispatcher.service';
 })
 export class DispatcherPageComponent implements AfterViewInit {
   units: any[] = [];
+  incidents: any[] = [];
   showIncidentForm = false;
+  map: any;
   incidentTypes: IncidentType[] = [
-    { id: 1, incident_type: 'BURGLARY' },
-    { id: 2, incident_type: 'ROBBERY' },
-    { id: 3, incident_type: 'DOMESTIC_VIOLENCE' },
-    { id: 3, incident_type: 'ASSAULT' },
-    { id: 3, incident_type: 'HOMICIDE' },
-    { id: 3, incident_type: 'HARRASMENT' },
-    { id: 3, incident_type: 'EMERGENCY_ALARM' }
+    { incident_type: 'BURGLARY' },
+    { incident_type: 'ROBBERY' },
+    { incident_type: 'DOMESTIC_VIOLENCE' },
+    { incident_type: 'ASSAULT' },
+    { incident_type: 'HOMICIDE' },
+    { incident_type: 'HARRASMENT' },
+    { incident_type: 'EMERGENCY_ALARM' }
   ];
   incident: IncidentModel = {
     description: '',
@@ -32,7 +34,7 @@ export class DispatcherPageComponent implements AfterViewInit {
     incident_type: this.incidentTypes[0]
   };
 
-  constructor(private router: Router) {}
+  constructor(private router: Router) { }
 
   async ngAfterViewInit() {
     const user = UserService.checkActive();
@@ -41,33 +43,58 @@ export class DispatcherPageComponent implements AfterViewInit {
       return;
     }
 
-    // Fetch units
+    // Fetch units and incidents
     this.units = await UnitService.getAllUnits();
+    this.incidents = await DispatcherService.getAllIncidents();
 
     setTimeout(() => {
-      const map = L.map('map').setView([44.810, 20.466], 13);
-      map.invalidateSize();
-
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 19
-      }).addTo(map);
-
-      // Add unit markers to the map
-      const carIcon = L.icon({
-        iconUrl: 'car.png',
-        iconSize: [36, 36],
-        iconAnchor: [18, 1],
-        popupAnchor: [0, -36],
-        className: 'custom-car-icon'
-      });
-
-      this.units.forEach(unit => {
-        const marker = L.marker([unit.lat, unit.lon], { icon: carIcon }).addTo(map);
-        marker.bindPopup(`<b>${unit.callSign}</b><br>ID: ${unit.id}`);
-        marker.bindTooltip(unit.callSign, { permanent: true, direction: 'top' });
-      });
+      this.initializeMap();
     }, 300);
+  }
+
+  initializeMap() {
+    // Clear existing map if it exists
+    if (this.map) {
+      this.map.remove();
+    }
+
+    this.map = L.map('map').setView([44.810, 20.466], 13);
+    this.map.invalidateSize();
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 19
+    }).addTo(this.map);
+
+    // Add unit markers to the map
+    const carIcon = L.icon({
+      iconUrl: 'car.png',
+      iconSize: [36, 36],
+      iconAnchor: [18, 1],
+      popupAnchor: [0, -36],
+      className: 'custom-car-icon'
+    });
+
+    this.units.forEach(unit => {
+      const marker = L.marker([unit.lat, unit.lon], { icon: carIcon }).addTo(this.map);
+      marker.bindPopup(`<b>${unit.callSign}</b><br>ID: ${unit.id}`);
+      marker.bindTooltip(unit.callSign, { permanent: true, direction: 'top' });
+    });
+
+    // Add incident markers to the map
+    const incidentIcon = L.icon({
+      iconUrl: 'red.png',
+      iconSize: [36, 28],
+      iconAnchor: [18, 1],
+      popupAnchor: [0, -36],
+      className: 'custom-incident-icon'
+    });
+
+    this.incidents.forEach(incident => {
+      const marker = L.marker([parseFloat(incident.lat), parseFloat(incident.lon)], { icon: incidentIcon }).addTo(this.map);
+      marker.bindPopup(`<b>${incident.incidentType}</b><br>Description: ${incident.description}<br>Address: ${incident.address}`);
+      marker.bindTooltip(incident.incidentType, { permanent: true, direction: 'top' });
+    });
   }
 
   openIncidentForm() {
@@ -84,15 +111,19 @@ export class DispatcherPageComponent implements AfterViewInit {
       address: this.incident.address,
       incidentType: this.incident.incident_type.incident_type
     };
-    
+
     DispatcherService.createIncident(payload)
-      .then(response => {
+      .then(async response => {
         alert('Incident created successfully!');
         this.incident = {
           description: '',
           address: '',
           incident_type: this.incidentTypes[0]
         };
+        // Refresh incidents from backend
+        this.incidents = await DispatcherService.getAllIncidents();
+        // Refresh the map with new incident
+        this.initializeMap();
       })
       .catch(error => {
         alert('Address not found.');

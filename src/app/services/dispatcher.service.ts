@@ -22,4 +22,16 @@ export class DispatcherService {
         }
     }
 
+    static async getAllIncidents(): Promise<any[]> {
+        try {
+            const authHeader = UserService.getBasicAuthHeader();
+            const response = await client.get('/getAllIncidents', {
+                headers: authHeader ? { 'Authorization': authHeader } : {}
+            });
+            return response.data;
+        } catch (error: any) {
+            return [];
+        }
+    }
+
 }
