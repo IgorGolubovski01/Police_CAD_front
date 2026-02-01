@@ -1,59 +1,59 @@
-# PoliceCADFront
+# Police CAD Frontend
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.1.6.
+This is an **Angular-based frontend application** for the Incident Management System. It provides a user-friendly interface for dispatchers and units to manage and track incidents in real-time, with interactive map-based visualization powered by Leaflet.
 
-## Development server
+## Features
 
-To start a local development server, run:
+### Core Functionalities:
 
-```bash
-ng serve
-```
+- **User Authentication**: Secure login system with role-based access control (Admin, Dispatcher, Unit).
+- **Incident Management**: Create, view, and track incidents with real-time location mapping.
+- **Real-Time Location Tracking**: Display unit locations dynamically on an interactive map.
+- **Interactive Maps**: Leaflet-based map showing:
+  - Unit markers with car icons
+  - Incident markers with red icons
+  - Popups with detailed information
+  - Tooltips for quick identification
+- **Role-Based Dashboards**:
+  - **Admin Page**: Administrative controls (future expansion).
+  - **Dispatcher Page**: Create incidents, assign units, manage emergency responses.
+  - **Unit Page**: View map with all incidents and units, continuous location updates.
+- **Responsive UI**: Built with Angular Material for a modern user experience.
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+### Core Components:
 
-## Code scaffolding
+1. **Pages**:
+   - `HomeComponent`: Login page for user authentication.
+   - `AdminPageComponent`: Administrative dashboard.
+   - `DispatcherPageComponent`: Dispatcher operations with incident creation form.
+   - `UnitPageComponent`: Unit view with map and location tracking.
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+2. **Services**:
+   - `UserService`: Handles authentication, login, and user session management with Basic Auth.
+   - `DispatcherService`: Manages incident creation and retrieval from backend.
+   - `UnitService`: Manages unit data and location updates.
+   - `LocationService`: Retrieves current GPS location from the browser.
 
-```bash
-ng generate component component-name
-```
+3. **Models**:
+   - `LoginModel`: User login credentials.
+   - `IncidentModel`: Incident data structure for creation.
+   - `GetAllIncidentsDto`: DTO for incident data from backend.
+   - `LatLonModel`: Latitude/Longitude data structure.
+   - `UnitModel`: Unit data structure.
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+4. **Styling**:
+   - CSS modules for component-specific styles.
+   - Global styles for consistent theming.
+   - Responsive design supporting various screen sizes.
 
-```bash
-ng generate --help
-```
+## Tech Stack
 
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+- **Frontend Framework**: Angular 19.
+- **UI Library**: Angular Material.
+- **Map Visualization**: Leaflet with TypeScript typings.
+- **HTTP Client**: Axios for API communication.
+- **State Management**: Component-based state with services.
+- **Language**: TypeScript 5.7+.
+- **Build Tool**: Angular CLI 19.
+- **Testing**: Jasmine and Karma (configured).
+- **Node Package Manager**: npm/bun.
