@@ -23,7 +23,7 @@ export class UnitService {
         }
     }
 
-static async updateLocation(latLon: LatLonModel): Promise<any> {
+    static async updateLocation(latLon: LatLonModel): Promise<any> {
         try {
             const authHeader = UserService.getBasicAuthHeader();
             const response = await client.post('/getUnitLocation', latLon, {
@@ -36,6 +36,30 @@ static async updateLocation(latLon: LatLonModel): Promise<any> {
         }
     }
 
-        
+    static async getUnitRecords(uId: number): Promise<any[]> {
+        try {
+            const authHeader = UserService.getBasicAuthHeader();
+            const response = await client.get(`/getUnitRecords/${uId}`, {
+                headers: authHeader ? { 'Authorization': authHeader } : {}
+            });
+            return response.data;
+        } catch (error: any) {
+            return [];
+        }
+    }
+
+    static async resolveIncident(incidentId: number, dto: any): Promise<any> {
+        try {
+            const authHeader = UserService.getBasicAuthHeader();
+            const response = await client.post(`/resolveIncident/${incidentId}`, dto, {
+                headers: authHeader ? { 'Authorization': authHeader } : {}
+            });
+            return response.data;
+        } catch (error: any) {
+            throw new Error('Error resolving incident');
+        }
+    }
+
+
 
 }

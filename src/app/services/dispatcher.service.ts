@@ -34,4 +34,27 @@ export class DispatcherService {
         }
     }
 
+    static async sendRecord(uId: number, rId: number): Promise<any> {
+        try {
+            const authHeader = UserService.getBasicAuthHeader();
+            const response = await client.post(`/unit/${uId}/record/${rId}`, {}, {
+                headers: authHeader ? { 'Authorization': authHeader } : {}
+            });
+            return response.data;
+        } catch (error: any) {
+            throw new Error('Error sending record');
+        }
+    }
+
+    static async getAllRecords(): Promise<any[]> {
+        try {
+            const authHeader = UserService.getBasicAuthHeader();
+            const response = await client.get('/getAllRecords', {
+                headers: authHeader ? { 'Authorization': authHeader } : {}
+            });
+            return response.data;
+        } catch (error: any) {
+            return [];
+        }
+    }
 }

@@ -1,4 +1,6 @@
 import { Component, OnDestroy, AfterViewInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { UserService } from '../services/user.service';
 import { LocationService } from '../services/location.service';
 import { UnitService } from '../services/unit.service';
@@ -8,7 +10,8 @@ import * as L from 'leaflet';
 
 @Component({
   selector: 'app-unit-page',
-  imports: [],
+  imports: [CommonModule, FormsModule],
+  standalone: true,
   templateUrl: './unit-page.component.html',
   styleUrl: './unit-page.component.css'
 })
@@ -16,7 +19,12 @@ export class UnitPageComponent implements OnDestroy, AfterViewInit {
   private locationUpdateInterval: any;
   units: any[] = [];
   incidents: any[] = [];
+  unitRecords: any[] = [];
   map: any;
+  selectedIncident: any = null;
+  showIncidentForm: boolean = false;
+  finalReport: string = '';
+  isSubmitting: boolean = false;
 
   ngAfterViewInit() {
     const user = UserService.checkActive();
@@ -33,13 +41,17 @@ export class UnitPageComponent implements OnDestroy, AfterViewInit {
     const user = UserService.checkActive();
     this.updateLocation(user.id);
 
-    // Updating location (60s)
-    this.locationUpdateInterval = setInterval(() => {
+    // Updating location (6s)
+    this.locationUpdateInterval = setInterval(async () => {
       this.updateLocation(user.id);
-    }, 60000);
+      const records = await UnitService.getUnitRecords(user.id);
+      this.unitRecords = this.sortRecordsByTime(records);
+    }, 6000);
 
     this.units = await UnitService.getAllUnits();
     this.incidents = await DispatcherService.getAllIncidents();
+    const records = await UnitService.getUnitRecords(user.id);
+    this.unitRecords = this.sortRecordsByTime(records);
 
     setTimeout(() => {
       this.initializeMap();
@@ -88,6 +100,9 @@ export class UnitPageComponent implements OnDestroy, AfterViewInit {
       const marker = L.marker([parseFloat(incident.lat), parseFloat(incident.lon)], { icon: incidentIcon }).addTo(this.map);
       marker.bindPopup(`<b>${incident.incidentType}</b><br>Description: ${incident.description}<br>Address: ${incident.address}`);
       marker.bindTooltip(incident.incidentType, { permanent: true, direction: 'top' });
+      marker.on('click', () => {
+        this.openIncidentForm(incident);
+      });
     });
   }
 
@@ -105,6 +120,51 @@ export class UnitPageComponent implements OnDestroy, AfterViewInit {
       await UnitService.updateLocation(locationData);
     } catch (error) {
       console.error('Failed to update location:', error);
+    }
+  }
+
+  private sortRecordsByTime(records: any[]): any[] {
+    return records.sort((a, b) => {
+      const dateA = new Date(a.dateTime).getTime();
+      const dateB = new Date(b.dateTime).getTime();
+      return dateA - dateB; // Oldest first, newest last
+    });
+  }
+
+  openIncidentForm(incident: any) {
+    this.selectedIncident = incident;
+    this.finalReport = '';
+    this.showIncidentForm = true;
+  }
+
+  closeIncidentForm() {
+    this.showIncidentForm = false;
+    this.selectedIncident = null;
+    this.finalReport = '';
+  }
+
+  async submitIncidentForm() {
+    if (!this.finalReport.trim()) {
+      alert('Please enter a final report');
+      return;
+    }
+
+    this.isSubmitting = true;
+    try {
+      const dto = {
+        finalReport: this.finalReport
+      };
+      await UnitService.resolveIncident(this.selectedIncident.id, dto);
+      alert('Incident resolved successfully!');
+      this.closeIncidentForm();
+      // Refresh incidents
+      this.incidents = await DispatcherService.getAllIncidents();
+      this.initializeMap();
+    } catch (error) {
+      console.error('Error resolving incident:', error);
+      alert('Failed to resolve incident');
+    } finally {
+      this.isSubmitting = false;
     }
   }
 

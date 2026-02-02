@@ -1,4 +1,73 @@
 <div class="container">
   <div id="map"></div>
-  <div class="right-panel"></div>
+  <div class="right-panel">
+    <div class="records-header">Unit Records</div>
+    <div class="records-list">
+      @for (record of unitRecords; track record.id) {
+        <div class="record-item">
+          <div class="record-header">
+            <span class="record-name">{{ record.fullName }}</span>
+            <span class="record-id">#{{ record.id }}</span>
+          </div>
+          <div class="record-time">{{ record.dateTime | date:'short' }}</div>
+          <div class="record-address">
+            <strong>Address:</strong> {{ record.address }}
+          </div>
+          <div class="record-offense">
+            <strong>Offense:</strong> {{ record.offenseDetails }}
+          </div>
+        </div>
+      }
+    </div>
+  </div>
 </div>
+
+@if (showIncidentForm) {
+  <div class="modal-overlay" (click)="closeIncidentForm()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Resolve Incident</h2>
+        <button class="close-btn" (click)="closeIncidentForm()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="incident-info">
+          <div class="info-item">
+            <label>Incident Type:</label>
+            <span>{{ selectedIncident?.incidentType }}</span>
+          </div>
+          <div class="info-item">
+            <label>Description:</label>
+            <span>{{ selectedIncident?.description }}</span>
+          </div>
+          <div class="info-item">
+            <label>Address:</label>
+            <span>{{ selectedIncident?.address }}</span>
+          </div>
+        </div>
+
+        <form (ngSubmit)="submitIncidentForm()">
+          <div class="form-group">
+            <label for="finalReport">Final Report</label>
+            <textarea 
+              id="finalReport" 
+              [(ngModel)]="finalReport" 
+              name="finalReport"
+              placeholder="Enter the final report for this incident..."
+              rows="6"
+              required></textarea>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn-cancel" (click)="closeIncidentForm()" [disabled]="isSubmitting">
+              Cancel
+            </button>
+            <button type="submit" class="btn-submit" [disabled]="isSubmitting">
+              {{ isSubmitting ? 'Submitting...' : 'Resolve Incident' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+}

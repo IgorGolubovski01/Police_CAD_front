@@ -18,6 +18,7 @@ export class DispatcherPageComponent implements AfterViewInit {
   units: any[] = [];
   incidents: any[] = [];
   showIncidentForm = false;
+    showSendRecordForm = false;
   map: any;
   incidentTypes: IncidentType[] = [
     { incident_type: 'BURGLARY' },
@@ -32,6 +33,13 @@ export class DispatcherPageComponent implements AfterViewInit {
     description: '',
     address: '',
     incident_type: this.incidentTypes[0]
+  };
+  sendRecord = {
+    selectedUnit: null as any,
+    selectedRecord: null as any,
+    searchQuery: '',
+    allRecords: [] as any[],
+    filteredRecords: [] as any[]
   };
 
   constructor(private router: Router) { }
@@ -76,9 +84,11 @@ export class DispatcherPageComponent implements AfterViewInit {
     });
 
     this.units.forEach(unit => {
+      const statusClass = unit.status === 'SAFE' ? 'unit-status-safe' : 'unit-status-action';
       const marker = L.marker([unit.lat, unit.lon], { icon: carIcon }).addTo(this.map);
-      marker.bindPopup(`<b>${unit.callSign}</b><br>ID: ${unit.id}`);
-      marker.bindTooltip(unit.callSign, { permanent: true, direction: 'top' });
+      marker.bindPopup(`<b>${unit.callSign}</b>`);
+      marker.bindTooltip(unit.callSign + ' ' + unit.status, { permanent: true, direction: 'top', className: statusClass });
+      
     });
 
     // Add incident markers to the map
@@ -129,5 +139,61 @@ export class DispatcherPageComponent implements AfterViewInit {
         alert('Address not found.');
       });
     this.closeIncidentForm();
+  }
+
+  async openSendRecordForm() {
+    this.showSendRecordForm = true;
+    this.sendRecord.searchQuery = '';
+    this.sendRecord.selectedRecord = null;
+    this.sendRecord.selectedUnit = null;
+    
+    // Fetch all records from backend
+    this.sendRecord.allRecords = await DispatcherService.getAllRecords();
+    this.sendRecord.filteredRecords = [];
+  }
+
+  closeSendRecordForm() {
+    this.showSendRecordForm = false;
+  }
+
+  searchRecords(query: string) {
+    this.sendRecord.searchQuery = query;
+    if (query.trim() === '') {
+      this.sendRecord.filteredRecords = [];
+      return;
+    }
+    
+    // Filter records locally based on search query
+    const lowerQuery = query.toLowerCase();
+    this.sendRecord.filteredRecords = this.sendRecord.allRecords.filter(record =>
+      record.fullName.toLowerCase().includes(lowerQuery) ||
+      record.address.toLowerCase().includes(lowerQuery)
+    );
+  }
+
+  submitSendRecord() {
+    if (!this.sendRecord.selectedUnit || !this.sendRecord.selectedRecord) {
+      alert('Please select both unit and record');
+      return;
+    }
+
+    DispatcherService.sendRecord(
+      this.sendRecord.selectedUnit.id,
+      this.sendRecord.selectedRecord.id
+    )
+      .then(response => {
+        alert('Record sent successfully!');
+        this.closeSendRecordForm();
+        this.sendRecord.selectedUnit = null;
+        this.sendRecord.selectedRecord = null;
+        this.sendRecord.searchQuery = '';
+      })
+      .catch(error => {
+        alert('Error sending record');
+      });
+  }
+
+  getInActionUnits() {
+    return this.units.filter(unit => unit.status === 'IN_ACTION');
   }
 }

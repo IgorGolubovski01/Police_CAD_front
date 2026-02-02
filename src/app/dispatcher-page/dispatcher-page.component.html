@@ -1,6 +1,23 @@
 
 <div id="map"></div>
-<button class="create-incident-btn" type="button" (click)="openIncidentForm()">Create Incident</button>
+<div class="empty-panel">
+  <div class="panel-header">IN ACTION</div>
+  <div class="units-list">
+    @if (getInActionUnits().length > 0) {
+      @for (unit of getInActionUnits(); track unit.id) {
+        <div class="unit-item">
+          <div class="unit-callsign">{{ unit.callSign }}</div>
+        </div>
+      }
+    } @else {
+      <div class="no-units">No units in action</div>
+    }
+  </div>
+</div>
+<div class="button-container">
+  <button class="create-incident-btn" type="button" (click)="openIncidentForm()">Create Incident</button>
+  <button class="send-record-btn" type="button" (click)="openSendRecordForm()">Send Record</button>
+</div>
 
 <div class="incident-modal" *ngIf="showIncidentForm">
 	<div class="incident-modal__backdrop" (click)="closeIncidentForm()"></div>
@@ -29,6 +46,52 @@
 			<div class="incident-modal__actions">
 				<button type="button" class="secondary" (click)="closeIncidentForm()">Cancel</button>
 				<button type="submit">Submit</button>
+			</div>
+		</form>
+	</div>
+</div>
+
+<div class="record-modal" *ngIf="showSendRecordForm">
+	<div class="record-modal__backdrop" (click)="closeSendRecordForm()"></div>
+	<div class="record-modal__content">
+		<h2>Send Record</h2>
+		<form (ngSubmit)="submitSendRecord()">
+			<label>
+				Select Unit
+				<select [(ngModel)]="sendRecord.selectedUnit" name="selectedUnit" required>
+					<option [ngValue]="null" disabled>-- Choose a unit --</option>
+					<option *ngFor="let unit of units" [ngValue]="unit">
+						{{ unit.callSign }}
+					</option>
+				</select>
+			</label>
+
+			<label>
+				Search Records
+				<input 
+					[(ngModel)]="sendRecord.searchQuery" 
+					(input)="searchRecords(sendRecord.searchQuery)"
+					name="searchQuery" 
+					type="text" 
+					placeholder="Search by name, type, etc." 
+				/>
+			</label>
+
+			<div class="record-results" *ngIf="sendRecord.filteredRecords.length > 0">
+				<label>
+					Select Record
+					<select [(ngModel)]="sendRecord.selectedRecord" name="selectedRecord" required>
+						<option [ngValue]="null" disabled>-- Choose a record --</option>
+						<option *ngFor="let record of sendRecord.filteredRecords" [ngValue]="record">
+							{{ record.fullName }} - {{ record.address }}
+						</option>
+					</select>
+				</label>
+			</div>
+
+			<div class="record-modal__actions">
+				<button type="button" class="secondary" (click)="closeSendRecordForm()">Cancel</button>
+				<button type="submit">Send</button>
 			</div>
 		</form>
 	</div>
