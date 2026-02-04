@@ -366,14 +366,14 @@
   transition: background 0.2s, transform 0.2s;
 }
 
-.deploy-unit-item:hover:not(.unit-full) {
+.deploy-unit-item:hover {
   background: rgba(255, 255, 255, 0.18);
   transform: translateY(-1px);
 }
 
 .deploy-unit-item.unit-full {
-  opacity: 0.5;
-  cursor: not-allowed;
+  background: rgba(255, 200, 0, 0.2);
+  border-color: rgba(255, 200, 0, 0.4);
 }
 
 .deploy-unit-callsign {

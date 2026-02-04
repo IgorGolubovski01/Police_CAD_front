@@ -70,9 +70,11 @@ export class DispatcherPageComponent implements AfterViewInit {
     await this.loadIncidentUnitRelations();
     await this.loadInActionUnitsOfficers();
 
-    // Refresh IN ACTION units officers every 6 seconds
-    setInterval(() => {
-      this.loadInActionUnitsOfficers();
+    // Refresh IN ACTION units officers and incident relations every 6 seconds
+    setInterval(async () => {
+      await this.loadInActionUnitsOfficers();
+      await this.loadIncidentUnitRelations();
+      this.updateMapMarkers();
     }, 6000);
 
     setTimeout(() => {
@@ -93,6 +95,21 @@ export class DispatcherPageComponent implements AfterViewInit {
       attribution: '© OpenStreetMap contributors',
       maxZoom: 19
     }).addTo(this.map);
+
+    this.updateMapMarkers();
+  }
+
+  updateMapMarkers() {
+    if (!this.map) {
+      return;
+    }
+
+    // Clear all layers except the tile layer
+    this.map.eachLayer((layer: any) => {
+      if (layer instanceof L.Marker) {
+        this.map.removeLayer(layer);
+      }
+    });
 
     // Add unit markers to the map
     const carIcon = L.icon({
@@ -158,8 +175,10 @@ export class DispatcherPageComponent implements AfterViewInit {
         };
         // Refresh incidents from backend
         this.incidents = await DispatcherService.getAllIncidents();
+        // Refresh incident-unit relations
+        await this.loadIncidentUnitRelations();
         // Refresh the map with new incident
-        this.initializeMap();
+        this.updateMapMarkers();
       })
       .catch(error => {
         alert('Address not found.');
@@ -293,7 +312,9 @@ export class DispatcherPageComponent implements AfterViewInit {
         unit.status === 'SAFE' && this.getUnitOfficerCount(unit.id) > 0
       );
       
-      this.initializeMap();
+      // Refresh incident-unit relations to update tooltips
+      await this.loadIncidentUnitRelations();
+      this.updateMapMarkers();
       await this.loadInActionUnitsOfficers();
     } catch (error) {
       alert('Failed to assign unit to incident');
@@ -388,7 +409,15 @@ export class DispatcherPageComponent implements AfterViewInit {
       const relations = await DispatcherService.getAllIncidentUnitRels();
       this.unitIncidentMap.clear();
       relations.forEach((rel: any) => {
-        this.unitIncidentMap.set(rel.unitId, rel.incidentId);
+        // Only map active incident-unit relationships (if active field exists and is true, or if active field doesn't exist assume it's active)
+        if (rel.active !== false) {
+          // Handle both flat structure (unitId, incidentId) and nested structure (unit.id, incident.id)
+          const unitId = rel.unitId || rel.unit?.id;
+          const incidentId = rel.incidentId || rel.incident?.id;
+          if (unitId && incidentId) {
+            this.unitIncidentMap.set(unitId, incidentId);
+          }
+        }
       });
     } catch (error) {
       console.error('Error loading incident-unit relations:', error);

@@ -17,9 +17,11 @@ import * as L from 'leaflet';
 })
 export class UnitPageComponent implements OnDestroy, AfterViewInit {
   private locationUpdateInterval: any;
+  private dataUpdateInterval: any;
   units: any[] = [];
   incidents: any[] = [];
   unitRecords: any[] = [];
+  unitIncidentMap: Map<number, number> = new Map();
   map: any;
   private mapInitialized: boolean = false;
   private markersLayer: any;
@@ -27,6 +29,8 @@ export class UnitPageComponent implements OnDestroy, AfterViewInit {
   showIncidentForm: boolean = false;
   finalReport: string = '';
   isSubmitting: boolean = false;
+  private readonly LOCATION_UPDATE_INTERVAL = 6000; // 6 seconds
+  private readonly DATA_UPDATE_INTERVAL = 15000; // 15 seconds (debounced)
 
   ngAfterViewInit() {
     const user = UserService.checkActive();
@@ -43,21 +47,28 @@ export class UnitPageComponent implements OnDestroy, AfterViewInit {
     const user = UserService.checkActive();
     this.updateLocation(user.id);
 
-    // Updating location (6s)
+    // Fetch data on init
+    this.units = await UnitService.getAllUnits();
+    this.incidents = await DispatcherService.getAllIncidents();
+    const records = await UnitService.getUnitRecords(user.id);
+    this.unitRecords = this.sortRecordsByTime(records);
+    await this.loadIncidentUnitRelations();
+
+    // Frequent location updates (6s)
     this.locationUpdateInterval = setInterval(async () => {
       this.updateLocation(user.id);
+    }, this.LOCATION_UPDATE_INTERVAL);
+
+    // Debounced data updates (15s - less frequent)
+    this.dataUpdateInterval = setInterval(async () => {
       const records = await UnitService.getUnitRecords(user.id);
       this.unitRecords = this.sortRecordsByTime(records);
       // Refresh units and incidents
       this.units = await UnitService.getAllUnits();
       this.incidents = await DispatcherService.getAllIncidents();
+      await this.loadIncidentUnitRelations();
       this.updateMapMarkers();
-    }, 6000);
-
-    this.units = await UnitService.getAllUnits();
-    this.incidents = await DispatcherService.getAllIncidents();
-    const records = await UnitService.getUnitRecords(user.id);
-    this.unitRecords = this.sortRecordsByTime(records);
+    }, this.DATA_UPDATE_INTERVAL);
 
     setTimeout(() => {
       this.initializeMap();
@@ -104,7 +115,11 @@ export class UnitPageComponent implements OnDestroy, AfterViewInit {
       const statusClass = unit.status === 'SAFE' ? 'unit-status-safe' : 'unit-status-action';
       const marker = L.marker([unit.lat, unit.lon], { icon: carIcon }).addTo(this.markersLayer);
       marker.bindPopup(`<b>${unit.callSign}</b><br>ID: ${unit.id}<br>Status: ${unit.status}`);
-      marker.bindTooltip(unit.callSign, { permanent: true, direction: 'top', className: statusClass });
+      const incidentId = this.unitIncidentMap.get(unit.id);
+      const tooltipText = incidentId 
+        ? `[INC-${incidentId}] ${unit.callSign}`
+        : `${unit.callSign}`;
+      marker.bindTooltip(tooltipText, { permanent: true, direction: 'top', className: statusClass });
     });
 
     // Incident marker
@@ -119,7 +134,7 @@ export class UnitPageComponent implements OnDestroy, AfterViewInit {
     this.incidents.forEach(incident => {
       const marker = L.marker([parseFloat(incident.lat), parseFloat(incident.lon)], { icon: incidentIcon }).addTo(this.markersLayer);
       marker.bindPopup(`<b>${incident.incidentType}</b><br>Description: ${incident.description}<br>Address: ${incident.address}`);
-      marker.bindTooltip(incident.incidentType, { permanent: true, direction: 'top' });
+      marker.bindTooltip(`INC-${incident.id} ${incident.incidentType}`, { permanent: true, direction: 'top' });
       marker.on('click', () => {
         this.openIncidentForm(incident);
       });
@@ -189,10 +204,31 @@ export class UnitPageComponent implements OnDestroy, AfterViewInit {
     }
   }
 
+  async loadIncidentUnitRelations() {
+    try {
+      const relations = await DispatcherService.getAllIncidentUnitRels();
+      this.unitIncidentMap.clear();
+      relations.forEach((rel: any) => {
+        if (rel.active !== false) {
+          const unitId = rel.unitId || rel.unit?.id;
+          const incidentId = rel.incidentId || rel.incident?.id;
+          if (unitId && incidentId) {
+            this.unitIncidentMap.set(unitId, incidentId);
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error loading incident-unit relations:', error);
+    }
+  }
+
   ngOnDestroy() {
-    // Clear interval when component is destroyed
+    // Clear intervals when component is destroyed
     if (this.locationUpdateInterval) {
       clearInterval(this.locationUpdateInterval);
+    }
+    if (this.dataUpdateInterval) {
+      clearInterval(this.dataUpdateInterval);
     }
   }
 }
