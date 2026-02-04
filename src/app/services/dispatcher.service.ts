@@ -57,4 +57,77 @@ export class DispatcherService {
             return [];
         }
     }
+
+    static async getAvailableOfficers(): Promise<any[]>{
+        try {
+            const authHeader = UserService.getBasicAuthHeader();
+            const response = await client.get('/getAvailableOfficers', {
+                headers: authHeader ? { 'Authorization': authHeader } : {}
+            });
+            return response.data;
+        } catch (error: any) {
+            return [];
+        }
+
+    }
+
+    static async assignOfficerToUnit(oId: number, uId: number): Promise<any> {
+        try {
+            const authHeader = UserService.getBasicAuthHeader();
+            const response = await client.post(`/unit/${uId}/officer/${oId}`, {}, {
+                headers: authHeader ? { 'Authorization': authHeader } : {}
+            });
+            return response.data;
+        } catch (error: any) {
+            throw new Error('Error assigning officer to unit');
+        }
+    }
+
+    static async getUnitOfficers(uId: number): Promise<any[]> {
+        try {
+            const authHeader = UserService.getBasicAuthHeader();
+            const response = await client.get(`/getUnitOfficers/${uId}`, {
+                headers: authHeader ? { 'Authorization': authHeader } : {}
+            });
+            return response.data;
+        } catch (error: any) {
+            return [];
+        }
+    }
+
+    static async disengageOfficer(oId: number): Promise<any> {
+        try {
+            const authHeader = UserService.getBasicAuthHeader();
+            const response = await client.delete(`/disengageOfficer/${oId}`, {
+                headers: authHeader ? { 'Authorization': authHeader } : {}
+            });
+            return response.data;
+        } catch (error: any) {
+            throw new Error('Error disengaging officer');
+        }
+    }
+
+    static async assignUnitToIncident(uId: number, iId: number): Promise<any> {
+        try {
+            const authHeader = UserService.getBasicAuthHeader();
+            const response = await client.post(`/unit/${uId}/incident/${iId}`, {}, {
+                headers: authHeader ? { 'Authorization': authHeader } : {}
+            });
+            return response.data;   
+        } catch (error: any) {
+            throw new Error('Error assigning unit to incident');
+        }
+    }
+
+    static async getIncidentAssignedUnits(iId: number): Promise<any[]> {
+        try {
+            const authHeader = UserService.getBasicAuthHeader();
+            const response = await client.get(`/getIncidentAssignedUnits/incident/${iId}`, {
+                headers: authHeader ? { 'Authorization': authHeader } : {}
+            });
+            return response.data;
+        } catch (error: any) {
+            return [];
+        }
+    }
 }

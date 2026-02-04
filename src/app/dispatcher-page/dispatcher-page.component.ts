@@ -18,7 +18,19 @@ export class DispatcherPageComponent implements AfterViewInit {
   units: any[] = [];
   incidents: any[] = [];
   showIncidentForm = false;
-    showSendRecordForm = false;
+  showSendRecordForm = false;
+  showDeployOfficersForm = false;
+  showAssignUnitModal = false;
+  availableOfficers: any[] = [];
+  unitOfficers: any[] = [];
+  unitOfficerCounts: Map<number, number> = new Map();
+  unitsOfficersMap: Map<number, any[]> = new Map();
+  selectedUnitForDeploy: any = null;
+  selectedIncidentForAssign: any = null;
+  availableUnitsForAssign: any[] = [];
+  assignedUnitsForIncident: any[] = [];
+  isLoadingOfficers = false;
+  isLoadingUnitOfficers = false;
   map: any;
   incidentTypes: IncidentType[] = [
     { incident_type: 'BURGLARY' },
@@ -54,6 +66,12 @@ export class DispatcherPageComponent implements AfterViewInit {
     // Fetch units and incidents
     this.units = await UnitService.getAllUnits();
     this.incidents = await DispatcherService.getAllIncidents();
+    await this.loadInActionUnitsOfficers();
+
+    // Refresh IN ACTION units officers every 6 seconds
+    setInterval(() => {
+      this.loadInActionUnitsOfficers();
+    }, 6000);
 
     setTimeout(() => {
       this.initializeMap();
@@ -87,7 +105,10 @@ export class DispatcherPageComponent implements AfterViewInit {
       const statusClass = unit.status === 'SAFE' ? 'unit-status-safe' : 'unit-status-action';
       const marker = L.marker([unit.lat, unit.lon], { icon: carIcon }).addTo(this.map);
       marker.bindPopup(`<b>${unit.callSign}</b>`);
-      marker.bindTooltip(unit.callSign + ' ' + unit.status, { permanent: true, direction: 'top', className: statusClass });
+      const tooltipText = unit.incidentId 
+        ? `${unit.callSign} [INC-${unit.incidentId}]`
+        : `${unit.callSign}`;
+      marker.bindTooltip(tooltipText, { permanent: true, direction: 'top', className: statusClass });
       
     });
 
@@ -102,8 +123,10 @@ export class DispatcherPageComponent implements AfterViewInit {
 
     this.incidents.forEach(incident => {
       const marker = L.marker([parseFloat(incident.lat), parseFloat(incident.lon)], { icon: incidentIcon }).addTo(this.map);
-      marker.bindPopup(`<b>${incident.incidentType}</b><br>Description: ${incident.description}<br>Address: ${incident.address}`);
-      marker.bindTooltip(incident.incidentType, { permanent: true, direction: 'top' });
+      marker.bindTooltip(`INC-${incident.id} ${incident.incidentType}`, { permanent: true, direction: 'top' });
+      marker.on('click', () => {
+        this.openAssignUnitModal(incident);
+      });
     });
   }
 
@@ -195,5 +218,165 @@ export class DispatcherPageComponent implements AfterViewInit {
 
   getInActionUnits() {
     return this.units.filter(unit => unit.status === 'IN_ACTION');
+  }
+
+  async loadInActionUnitsOfficers() {
+    const inActionUnits = this.getInActionUnits();
+    try {
+      const promises = inActionUnits.map(unit =>
+        DispatcherService.getUnitOfficers(unit.id)
+          .then(officers => {
+            this.unitsOfficersMap.set(unit.id, officers);
+          })
+      );
+      await Promise.all(promises);
+    } catch (error) {
+      console.error('Error loading IN ACTION units officers:', error);
+    }
+  }
+
+  getUnitOfficers(uId: number): any[] {
+    return this.unitsOfficersMap.get(uId) || [];
+  }
+
+  async openAssignUnitModal(incident: any) {
+    this.selectedIncidentForAssign = incident;
+    this.showAssignUnitModal = true;
+    try {
+      // Ensure officer counts are loaded
+      await this.loadAllUnitOfficerCounts();
+      
+      // Fetch units assigned to this incident from backend
+      this.assignedUnitsForIncident = await DispatcherService.getIncidentAssignedUnits(incident.id);
+      
+      // Filter available units (SAFE status with officers)
+      this.availableUnitsForAssign = this.units.filter(unit => 
+        unit.status === 'SAFE' && this.getUnitOfficerCount(unit.id) > 0
+      );
+    } catch (error) {
+      console.error('Error loading available units:', error);
+    }
+  }
+
+  closeAssignUnitModal() {
+    this.showAssignUnitModal = false;
+    this.selectedIncidentForAssign = null;
+    this.availableUnitsForAssign = [];
+    this.assignedUnitsForIncident = [];
+  }
+
+  async assignUnitToIncident(unit: any) {
+    if (!this.selectedIncidentForAssign) {
+      alert('No incident selected');
+      return;
+    }
+
+    try {
+      await DispatcherService.assignUnitToIncident(unit.id, this.selectedIncidentForAssign.id);
+      alert('Unit assigned to incident');
+      
+      // Refresh incidents and units
+      this.incidents = await DispatcherService.getAllIncidents();
+      this.units = await UnitService.getAllUnits();
+      
+      // Reload officer counts for all units
+      await this.loadAllUnitOfficerCounts();
+      
+      // Refresh assigned units from backend
+      this.assignedUnitsForIncident = await DispatcherService.getIncidentAssignedUnits(this.selectedIncidentForAssign.id);
+      
+      // Refresh available units list
+      this.availableUnitsForAssign = this.units.filter(unit => 
+        unit.status === 'SAFE' && this.getUnitOfficerCount(unit.id) > 0
+      );
+      
+      this.initializeMap();
+      await this.loadInActionUnitsOfficers();
+    } catch (error) {
+      alert('Failed to assign unit to incident');
+    }
+  }
+
+  openDeployOfficersForm() {
+    this.showDeployOfficersForm = true;
+    this.availableOfficers = [];
+    this.unitOfficers = [];
+    this.selectedUnitForDeploy = null;
+    this.loadAllUnitOfficerCounts();
+  }
+
+  closeDeployOfficersForm() {
+    this.showDeployOfficersForm = false;
+    this.availableOfficers = [];
+    this.unitOfficers = [];
+    this.selectedUnitForDeploy = null;
+  }
+
+  async selectUnitForDeploy(unit: any) {
+    this.selectedUnitForDeploy = unit;
+    this.isLoadingUnitOfficers = true;
+    this.isLoadingOfficers = true;
+    try {
+      const [unitOfficers, availableOfficers] = await Promise.all([
+        DispatcherService.getUnitOfficers(unit.id),
+        DispatcherService.getAvailableOfficers()
+      ]);
+      this.unitOfficers = unitOfficers;
+      this.availableOfficers = availableOfficers;
+    } finally {
+      this.isLoadingUnitOfficers = false;
+      this.isLoadingOfficers = false;
+    }
+  }
+
+  async assignOfficerToUnit(officer: any) {
+    if (!this.selectedUnitForDeploy) {
+      alert('Select a unit first');
+      return;
+    }
+
+    try {
+      await DispatcherService.assignOfficerToUnit(officer.id, this.selectedUnitForDeploy.id);
+      this.availableOfficers = this.availableOfficers.filter(o => o.id !== officer.id);
+      this.unitOfficers = await DispatcherService.getUnitOfficers(this.selectedUnitForDeploy.id);
+      this.unitOfficerCounts.set(this.selectedUnitForDeploy.id, this.unitOfficers.length);
+    } catch (error) {
+      alert('Failed to assign officer');
+    }
+  }
+
+  async disengageOfficer(officer: any) {
+    if (!this.selectedUnitForDeploy) {
+      alert('Select a unit first');
+      return;
+    }
+
+    try {
+      await DispatcherService.disengageOfficer(officer.id);
+      this.unitOfficers = await DispatcherService.getUnitOfficers(this.selectedUnitForDeploy.id);
+      this.availableOfficers = await DispatcherService.getAvailableOfficers();
+      this.unitOfficerCounts.set(this.selectedUnitForDeploy.id, this.unitOfficers.length);
+      alert('Officer disengaged');
+    } catch (error) {
+      alert('Failed to disengage officer');
+    }
+  }
+
+  getUnitOfficerCount(uId: number): number {
+    return this.unitOfficerCounts.get(uId) || 0;
+  }
+
+  async loadAllUnitOfficerCounts() {
+    try {
+      const promises = this.units.map(unit => 
+        DispatcherService.getUnitOfficers(unit.id)
+          .then(officers => {
+            this.unitOfficerCounts.set(unit.id, officers.length);
+          })
+      );
+      await Promise.all(promises);
+    } catch (error) {
+      console.error('Error loading officer counts:', error);
+    }
   }
 }

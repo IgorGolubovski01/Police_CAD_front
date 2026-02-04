@@ -82,9 +82,10 @@ export class UnitPageComponent implements OnDestroy, AfterViewInit {
     });
 
     this.units.forEach(unit => {
+      const statusClass = unit.status === 'SAFE' ? 'unit-status-safe' : 'unit-status-action';
       const marker = L.marker([unit.lat, unit.lon], { icon: carIcon }).addTo(this.map);
-      marker.bindPopup(`<b>${unit.callSign}</b><br>ID: ${unit.id}`);
-      marker.bindTooltip(unit.callSign, { permanent: true, direction: 'top' });
+      marker.bindPopup(`<b>${unit.callSign}</b><br>ID: ${unit.id}<br>Status: ${unit.status}`);
+      marker.bindTooltip(unit.callSign + ' ' + unit.status, { permanent: true, direction: 'top', className: statusClass });
     });
 
     // Incident marker

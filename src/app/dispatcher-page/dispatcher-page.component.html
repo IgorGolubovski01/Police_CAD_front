@@ -7,6 +7,15 @@
       @for (unit of getInActionUnits(); track unit.id) {
         <div class="unit-item">
           <div class="unit-callsign">{{ unit.callSign }}</div>
+          <div class="unit-officers">
+            @if (getUnitOfficers(unit.id).length > 0) {
+              @for (officer of getUnitOfficers(unit.id); track officer.id) {
+                <div class="officer-name-badge">{{ officer.fName }} {{ officer.lName }} (#{{ officer.badgeNumber }})</div>
+              }
+            } @else {
+              <div class="no-officers-in-unit">No officers assigned</div>
+            }
+          </div>
         </div>
       }
     } @else {
@@ -17,6 +26,7 @@
 <div class="button-container">
   <button class="create-incident-btn" type="button" (click)="openIncidentForm()">Create Incident</button>
   <button class="send-record-btn" type="button" (click)="openSendRecordForm()">Send Record</button>
+  <button class="deploy-officers-btn" type="button" (click)="openDeployOfficersForm()">Deploy Officers</button>
 </div>
 
 <div class="incident-modal" *ngIf="showIncidentForm">
@@ -94,5 +104,114 @@
 				<button type="submit">Send</button>
 			</div>
 		</form>
+	</div>
+</div>
+
+<div class="deploy-modal" *ngIf="showDeployOfficersForm">
+	<div class="deploy-modal__backdrop" (click)="closeDeployOfficersForm()"></div>
+	<div class="deploy-modal__content">
+		<h2>Deploy Officers</h2>
+		<div class="units-deploy-list">
+			@if (units.length > 0) {
+				@for (unit of units; track unit.id) {
+					<div class="deploy-unit-item" (click)="selectUnitForDeploy(unit)" [class.unit-full]="getUnitOfficerCount(unit.id) >= 4">
+						<span class="deploy-unit-callsign">{{ unit.callSign }}</span>
+						<span class="deploy-unit-count">{{ getUnitOfficerCount(unit.id) }}/4</span>
+					</div>
+				}
+			} @else {
+				<div class="no-units-deploy">No units available</div>
+			}
+		</div>
+		<div class="officers-list">
+			@if (selectedUnitForDeploy) {
+				<div class="officers-header">Officers in {{ selectedUnitForDeploy.callSign }}</div>
+				@if (isLoadingUnitOfficers) {
+					<div class="officers-loading">Loading unit officers...</div>
+				} @else {
+					@if (unitOfficers.length > 0) {
+						@for (officer of unitOfficers; track officer.id) {
+							<div class="officer-item officer-item--assigned">
+								<span class="officer-name">{{ officer.fName }} {{ officer.lName }}</span>
+								<span class="officer-badge">#{{ officer.badgeNumber }}</span>
+								<button type="button" class="officer-remove-btn" (click)="disengageOfficer(officer)">-</button>
+							</div>
+						}
+					} @else {
+						<div class="no-officers">No officers in this unit</div>
+					}
+				}
+
+				<div class="officers-header officers-header--spaced">Available Officers</div>
+				@if (isLoadingOfficers) {
+					<div class="officers-loading">Loading officers...</div>
+				} @else {
+					@if (availableOfficers.length > 0) {
+						@for (officer of availableOfficers; track officer.id) {
+							<div class="officer-item">
+								<span class="officer-name">{{ officer.fName }} {{ officer.lName }}</span>
+								<span class="officer-badge">#{{ officer.badgeNumber }}</span>
+								<button type="button" class="officer-assign-btn" (click)="assignOfficerToUnit(officer)">+</button>
+							</div>
+						}
+					} @else {
+						<div class="no-officers">No available officers</div>
+					}
+				}
+			} @else {
+				<div class="no-officers">Select a unit to view officers</div>
+			}
+		</div>
+		<div class="deploy-modal__actions">
+			<button type="button" class="secondary" (click)="closeDeployOfficersForm()">Close</button>
+		</div>
+	</div>
+</div>
+<div class="assign-unit-modal" *ngIf="showAssignUnitModal">
+	<div class="assign-unit-modal__backdrop" (click)="closeAssignUnitModal()"></div>
+	<div class="assign-unit-modal__content">
+		<h2>Assign Unit to Incident</h2>
+		@if (selectedIncidentForAssign) {
+			<div class="incident-details">
+				<div class="detail-row">
+					<strong>Type:</strong> {{ selectedIncidentForAssign.incidentType }}
+				</div>
+				<div class="detail-row">
+					<strong>Address:</strong> {{ selectedIncidentForAssign.address }}
+				</div>
+				<div class="detail-row">
+					<strong>Description:</strong> {{ selectedIncidentForAssign.description }}
+				</div>
+			</div>
+		}
+		<div class="available-units-list">
+			<div class="units-header">Currently Assigned Units</div>
+			@if (assignedUnitsForIncident.length > 0) {
+				@for (unit of assignedUnitsForIncident; track unit.id) {
+					<div class="assigned-unit-item">
+						<span class="unit-name">{{ unit.callSign }} [INC-{{ selectedIncidentForAssign.id }}]</span>
+						<span class="assigned-badge">IN ACTION</span>
+					</div>
+				}
+			} @else {
+				<div class="no-units-available">No units assigned yet</div>
+			}
+		</div>
+		<div class="available-units-list">
+			<div class="units-header">Available Units</div>
+			@if (availableUnitsForAssign.length > 0) {
+				@for (unit of availableUnitsForAssign; track unit.id) {
+					<div class="available-unit-item">
+						<span class="unit-name">{{ unit.callSign }}</span>
+						<button type="button" class="assign-btn" (click)="assignUnitToIncident(unit)">Assign</button>
+					</div>
+				}
+			} @else {
+				<div class="no-units-available">No available units</div>
+			}
+		</div>
+		<div class="assign-unit-modal__actions">
+			<button type="button" class="secondary" (click)="closeAssignUnitModal()">Cancel</button>
+		</div>
 	</div>
 </div>
