@@ -21,6 +21,8 @@ export class UnitPageComponent implements OnDestroy, AfterViewInit {
   incidents: any[] = [];
   unitRecords: any[] = [];
   map: any;
+  private mapInitialized: boolean = false;
+  private markersLayer: any;
   selectedIncident: any = null;
   showIncidentForm: boolean = false;
   finalReport: string = '';
@@ -46,6 +48,10 @@ export class UnitPageComponent implements OnDestroy, AfterViewInit {
       this.updateLocation(user.id);
       const records = await UnitService.getUnitRecords(user.id);
       this.unitRecords = this.sortRecordsByTime(records);
+      // Refresh units and incidents
+      this.units = await UnitService.getAllUnits();
+      this.incidents = await DispatcherService.getAllIncidents();
+      this.updateMapMarkers();
     }, 6000);
 
     this.units = await UnitService.getAllUnits();
@@ -59,9 +65,8 @@ export class UnitPageComponent implements OnDestroy, AfterViewInit {
   }
 
   private initializeMap() {
-    // Clear existing map if it exists
-    if (this.map) {
-      this.map.remove();
+    if (this.mapInitialized) {
+      return;
     }
 
     this.map = L.map('map').setView([44.810, 20.466], 13);
@@ -71,6 +76,20 @@ export class UnitPageComponent implements OnDestroy, AfterViewInit {
       attribution: '© OpenStreetMap contributors',
       maxZoom: 19
     }).addTo(this.map);
+
+    this.markersLayer = L.layerGroup().addTo(this.map);
+    this.mapInitialized = true;
+
+    this.updateMapMarkers();
+  }
+
+  private updateMapMarkers() {
+    if (!this.mapInitialized || !this.markersLayer) {
+      return;
+    }
+
+    // Clear existing markers
+    this.markersLayer.clearLayers();
 
     // Unit marker
     const carIcon = L.icon({
@@ -83,9 +102,9 @@ export class UnitPageComponent implements OnDestroy, AfterViewInit {
 
     this.units.forEach(unit => {
       const statusClass = unit.status === 'SAFE' ? 'unit-status-safe' : 'unit-status-action';
-      const marker = L.marker([unit.lat, unit.lon], { icon: carIcon }).addTo(this.map);
+      const marker = L.marker([unit.lat, unit.lon], { icon: carIcon }).addTo(this.markersLayer);
       marker.bindPopup(`<b>${unit.callSign}</b><br>ID: ${unit.id}<br>Status: ${unit.status}`);
-      marker.bindTooltip(unit.callSign + ' ' + unit.status, { permanent: true, direction: 'top', className: statusClass });
+      marker.bindTooltip(unit.callSign, { permanent: true, direction: 'top', className: statusClass });
     });
 
     // Incident marker
@@ -98,7 +117,7 @@ export class UnitPageComponent implements OnDestroy, AfterViewInit {
     });
 
     this.incidents.forEach(incident => {
-      const marker = L.marker([parseFloat(incident.lat), parseFloat(incident.lon)], { icon: incidentIcon }).addTo(this.map);
+      const marker = L.marker([parseFloat(incident.lat), parseFloat(incident.lon)], { icon: incidentIcon }).addTo(this.markersLayer);
       marker.bindPopup(`<b>${incident.incidentType}</b><br>Description: ${incident.description}<br>Address: ${incident.address}`);
       marker.bindTooltip(incident.incidentType, { permanent: true, direction: 'top' });
       marker.on('click', () => {
@@ -152,10 +171,11 @@ export class UnitPageComponent implements OnDestroy, AfterViewInit {
 
     this.isSubmitting = true;
     try {
+      const user = UserService.checkActive();
       const dto = {
         finalReport: this.finalReport
       };
-      await UnitService.resolveIncident(this.selectedIncident.id, dto);
+      await UnitService.resolveIncident(this.selectedIncident.id, user.id, dto);
       alert('Incident resolved successfully!');
       this.closeIncidentForm();
       // Refresh incidents

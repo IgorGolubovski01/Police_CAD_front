@@ -48,10 +48,10 @@ export class UnitService {
         }
     }
 
-    static async resolveIncident(incidentId: number, dto: any): Promise<any> {
+    static async resolveIncident(incidentId: number,unitId: number, dto: any): Promise<any> {
         try {
             const authHeader = UserService.getBasicAuthHeader();
-            const response = await client.post(`/resolveIncident/${incidentId}`, dto, {
+            const response = await client.post(`/resolveIncident/${incidentId}/${unitId}`, dto, {
                 headers: authHeader ? { 'Authorization': authHeader } : {}
             });
             return response.data;
@@ -59,7 +59,6 @@ export class UnitService {
             throw new Error('Error resolving incident');
         }
     }
-
 
 
 }

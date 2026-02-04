@@ -130,4 +130,16 @@ export class DispatcherService {
             return [];
         }
     }
+
+    static async getAllIncidentUnitRels(): Promise<any[]> {
+        try {
+            const authHeader = UserService.getBasicAuthHeader();
+            const response = await client.get('/getAllIncidentUnitRels', {
+                headers: authHeader ? { 'Authorization': authHeader } : {}
+            });
+            return response.data;
+        } catch (error: any) {
+            return [];
+        }
+    }
 }

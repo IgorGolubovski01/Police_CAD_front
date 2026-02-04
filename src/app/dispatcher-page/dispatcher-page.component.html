@@ -189,7 +189,7 @@
 			@if (assignedUnitsForIncident.length > 0) {
 				@for (unit of assignedUnitsForIncident; track unit.id) {
 					<div class="assigned-unit-item">
-						<span class="unit-name">{{ unit.callSign }} [INC-{{ selectedIncidentForAssign.id }}]</span>
+						<span class="unit-name">[INC-{{ selectedIncidentForAssign.id }}] {{ unit.callSign }}</span>
 						<span class="assigned-badge">IN ACTION</span>
 					</div>
 				}

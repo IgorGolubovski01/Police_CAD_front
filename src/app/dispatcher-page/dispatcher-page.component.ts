@@ -25,6 +25,7 @@ export class DispatcherPageComponent implements AfterViewInit {
   unitOfficers: any[] = [];
   unitOfficerCounts: Map<number, number> = new Map();
   unitsOfficersMap: Map<number, any[]> = new Map();
+  unitIncidentMap: Map<number, number> = new Map();
   selectedUnitForDeploy: any = null;
   selectedIncidentForAssign: any = null;
   availableUnitsForAssign: any[] = [];
@@ -66,6 +67,7 @@ export class DispatcherPageComponent implements AfterViewInit {
     // Fetch units and incidents
     this.units = await UnitService.getAllUnits();
     this.incidents = await DispatcherService.getAllIncidents();
+    await this.loadIncidentUnitRelations();
     await this.loadInActionUnitsOfficers();
 
     // Refresh IN ACTION units officers every 6 seconds
@@ -105,8 +107,9 @@ export class DispatcherPageComponent implements AfterViewInit {
       const statusClass = unit.status === 'SAFE' ? 'unit-status-safe' : 'unit-status-action';
       const marker = L.marker([unit.lat, unit.lon], { icon: carIcon }).addTo(this.map);
       marker.bindPopup(`<b>${unit.callSign}</b>`);
-      const tooltipText = unit.incidentId 
-        ? `${unit.callSign} [INC-${unit.incidentId}]`
+      const incidentId = this.unitIncidentMap.get(unit.id);
+      const tooltipText = incidentId 
+        ? `[INC-${incidentId}] ${unit.callSign}`
         : `${unit.callSign}`;
       marker.bindTooltip(tooltipText, { permanent: true, direction: 'top', className: statusClass });
       
@@ -377,6 +380,18 @@ export class DispatcherPageComponent implements AfterViewInit {
       await Promise.all(promises);
     } catch (error) {
       console.error('Error loading officer counts:', error);
+    }
+  }
+
+  async loadIncidentUnitRelations() {
+    try {
+      const relations = await DispatcherService.getAllIncidentUnitRels();
+      this.unitIncidentMap.clear();
+      relations.forEach((rel: any) => {
+        this.unitIncidentMap.set(rel.unitId, rel.incidentId);
+      });
+    } catch (error) {
+      console.error('Error loading incident-unit relations:', error);
     }
   }
 }
