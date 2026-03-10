@@ -1,4 +1,4 @@
-import { Component, AfterViewInit } from '@angular/core';
+import { Component, AfterViewInit, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { UserService } from '../services/user.service';
 import { Router } from '@angular/router';
@@ -14,7 +14,9 @@ import { DispatcherService } from '../services/dispatcher.service';
   templateUrl: './dispatcher-page.component.html',
   styleUrl: './dispatcher-page.component.css'
 })
-export class DispatcherPageComponent implements AfterViewInit {
+export class DispatcherPageComponent implements AfterViewInit, OnDestroy {
+  private refreshInterval: any;
+  private isDestroyed = false;
   units: any[] = [];
   incidents: any[] = [];
   showIncidentForm = false;
@@ -71,7 +73,10 @@ export class DispatcherPageComponent implements AfterViewInit {
     await this.loadInActionUnitsOfficers();
 
     // Refresh IN ACTION units officers and incident relations every 6 seconds
-    setInterval(async () => {
+    this.refreshInterval = setInterval(async () => {
+      if (this.isDestroyed) {
+        return;
+      }
       await this.loadInActionUnitsOfficers();
       await this.loadIncidentUnitRelations();
       this.updateMapMarkers();
@@ -421,6 +426,16 @@ export class DispatcherPageComponent implements AfterViewInit {
       });
     } catch (error) {
       console.error('Error loading incident-unit relations:', error);
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.isDestroyed = true;
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
+    }
+    if (this.map) {
+      this.map.remove();
     }
   }
 }
